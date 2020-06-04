@@ -42,27 +42,16 @@ matrix = np.zeros((num_samples,num_samples),dtype='complex_')
 start=t.time()
 
 #%%
-# % --------- Generacion de la matriz tridiagonal ---------
+# % ---------Tridiagonal Matrix ---------
 
-for m in range(num_samples):
-    if ((m>0) and (m<num_samples-1)):
-        matrix_original[m,m-1] = a[m]
-        matrix_original[m,m] = b[m]
-        matrix_original[m,m+1] = c[m]
-    else:
-        matrix_original[0,0] = b[0]
-        matrix_original[0,1] = c[0]
-        matrix_original[num_samples-1,num_samples-2] = a[num_samples-1]
-        matrix_original[num_samples-1,num_samples-1] = b[num_samples-1]
-matrix=matrix_original
-# index=np.arange(0,num_samples-1)
-# matrix[index,index+1]=a[index]
+index=np.arange(0,num_samples-1)
+matrix[index,index+1]=a[index]
 
-# index=np.arange(1,num_samples)
-# matrix[index,index-1]=c[index]
+index=np.arange(1,num_samples)
+matrix[index,index-1]=c[index]
 
-# index=np.arange(num_samples)
-# matrix[index,index]=b[index]
+index=np.arange(num_samples)
+matrix[index,index]=b[index]
 
 # print((matrix_original==matrix).all())
 #%%# % --------- Ciclo Principal de Propagacion ---------  
