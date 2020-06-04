@@ -3,12 +3,14 @@ import numpy as np
 import time as t
 import matplotlib.pyplot as plt
 
+start=t.time()
+
 x1 = -60e-6
 x2 = 60e-6
 num_samples = 50
 dx = (x2-x1)/num_samples
 dy = 1e-6
-x = np.linspace(x1, x2-dx, num_samples)
+x = np.linspace(x1, x2, num_samples)
 W0 = 8e-6
 n_index = np.ones((num_samples,))
 nmax = 1
@@ -35,19 +37,16 @@ b = 2*(1+ro*A)-h*B
 c = a
 
 matrix = np.zeros((num_samples,num_samples),dtype='complex_')
-# matrix_original = np.zeros((num_samples,num_samples),dtype='complex_')
-
-start=t.time()
 
 #%% Tridiagonal Matrix
-
-index=np.arange(0,num_samples-1)
-matrix[index,index+1]=a[index]
-
-index=np.arange(1,num_samples)
-matrix[index,index-1]=c[index]
-
 index=np.arange(num_samples)
+
+index0=index[:-1]
+matrix[index0,index0+1]=a[index0]
+
+index1=index[1:]
+matrix[index1,index1-1]=c[index1]
+
 matrix[index,index]=b[index]
 
 # print((matrix_original==matrix).all())
@@ -56,20 +55,17 @@ modo = np.array(np.exp(-(x/W0)**2))
 zz = np.zeros((length,num_samples))
 d = np.zeros((num_samples),dtype='complex_')
 
-
+index=np.arange(1,num_samples-1)
 for n in range(length):         # cannot be transferred to numpy cause of np.linalg.solve in between lines
-    index=np.arange(1,num_samples-1)
     d[index]=(2*(1-ro*A[index])+h*B[index])*modo[index]+ro*A[index]*(modo[index-1]+modo[index+1])
     d[0] = (2*(1-ro*A[0])+h*B[0])*modo[0]+ro*A[0]*(modo[1])
     d[-1] = (2*(1-ro*A[-1])+h*B[-1])*modo[-1]+ro*A[-1]*(modo[-2])
 
     # modo = np.linalg.lstsq(matrix,d)[0]
-    # modo = solveit(matrix,d)
     modo = np.linalg.solve(matrix,d) #fastest option
     zz[n,:] = np.abs(modo)
 
 #%%
-
 # print(modo[0])
 
 end = t.time()
