@@ -6,8 +6,9 @@ from matplotlib.widgets import Slider, Button, RadioButtons
 class FdBpm:
     def __init__(self):
         # window properties
-        self.NUM_SAMPLES = np.int(500)
+        self.NUM_SAMPLES = np.int(100)
         self.LENGTH = np.int(1E3)   # set to 1E3 for better precision
+        self.cmap="jet"
 
     def create_space(self):
         # Physical Properties
@@ -38,13 +39,16 @@ class FdBpm:
         return np.array(np.exp(-(x/w0)**2))
 
     def create_guides(self,width=8E-6,offset=0,plotOn=False):
-        n_env=1.0405
+        if not hasattr(self, 'n_env'):
+            self.n_env=1.0405
         if not hasattr(self,'guides'):
-            self.guides = np.ones((self.NUM_SAMPLES,))*n_env
+            self.guides = np.ones((self.NUM_SAMPLES,))*self.n_env
+        if not hasattr(self,'dn'):
+            self.dn=0.03
         
-        dn=0.03
+        
         mask=np.logical_and(self.x>-width/2+offset ,self.x<width/2+offset)
-        self.guides[mask]+=dn  #square guide
+        self.guides[mask]+=self.dn  #square guide
         # avg_guide = (np.max(guides)+np.min(guides))/2
         # avg_guide = (np.min(guides))
         self.avg_guide = (np.mean(self.guides))
@@ -58,7 +62,13 @@ class FdBpm:
 
     def make_tri_matrix(self):
 
+        if not hasattr(self,'guides'):
+            self.n_env=1.0405
+            self.guides = np.ones((self.NUM_SAMPLES,))*self.n_env
+            self.avg_guide = self.guides
+
         k0 = 2*np.pi/self.l_ambda
+        # k = k0*self.guides
         k = k0/self.guides
         k_bar = k*self.avg_guide
 
@@ -106,7 +116,8 @@ class FdBpm:
             # self.modo = np.linalg.lstsq(tridiag_matrix,d)[0]
             light = np.linalg.solve(tridiag_matrix,d) #fastest option
             propag[n,:] = np.abs(light)
-            # propag[n,:] = light.real  # E Field
+            # propag[n,:] = np.real(light) # TEM Field
+            # propag[n,:] = np.angle(light) # interesting
 
         if timing:
             end = t.time()
@@ -118,7 +129,7 @@ class FdBpm:
             propag_img=propag[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:]
             
             fig,ax=plt.subplots()
-            ax.imshow(propag_img,cmap="plasma",interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E6,0],aspect='auto')
+            ax.imshow(propag_img,cmap=self.cmap,interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E6,0],aspect='auto')
             ax.set_xlabel(r"x ($\mu$m)")
             ax.set_ylabel(r"Length ($\mu$m)")
 
@@ -131,25 +142,26 @@ class FdBpm:
 
         fig, ax = plt.subplots()
         plt.subplots_adjust(left=0.25, bottom=0.25)
-        img=ax.imshow(self.calculate_propagation(plotOn=False),cmap="jet",interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E6,0],aspect='auto')
+        propag_img=self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:]
+        img=ax.imshow(propag_img,cmap=self.cmap,interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E6,0],aspect='auto')
         ax.set_xlabel(r"x ($\mu$m)")
         ax.set_ylabel(r"Length ($\mu$m)")
         ax.margins(x=0)
 
         axcolor = 'lightgoldenrodyellow'
-        axfreq = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
+        ax_position = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
 
-        sfreq = Slider(axfreq, 'Light Offset', -self.L/2, +self.L/2, valinit=self.light_offset, valstep=self.dx,valfmt="%2.0e")
+        slider_position = Slider(ax_position, 'Light Offset', -self.L/2, +self.L/2, valinit=self.light_offset, valstep=self.dx,valfmt="%2.0e")
 
 
         def update(val):
-            freq = np.float(sfreq.val)
-            fd.create_source(offset=freq,plotOn=False)
-            img.set_data(fd.calculate_propagation(plotOn=False))
+            pos = np.float(slider_position.val)
+            self.create_source(offset=pos,plotOn=False)
+            img.set_data(self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:])
             fig.canvas.draw_idle()
 
 
-        sfreq.on_changed(update)
+        slider_position.on_changed(update)
 
         plt.show()
 
@@ -161,16 +173,21 @@ if __name__ == "__main__":
     # %matplotlib qt
     fd=FdBpm()
     fd.NUM_SAMPLES=100
-    fd.LENGTH=1.2E4
-    fd.dy=1E-6
-    fd.l_ambda=0.8E-6
-    fd.L=60E-6
+    fd.LENGTH=1E3
+    longueur=40E-6
+    fd.dy=longueur/fd.LENGTH
+    # fd.dy=1E-6
+    
+    fd.l_ambda=1.55E-6
+    fd.L=3E-6
     fd.create_space()
     plotOn=True
-    offset=13E-6
-    fd.create_source(waist=5E-6,offset=-offset,plotOn=False)
-    fd.create_guides(offset=-offset)
-    fd.create_guides()
-    fd.create_guides(offset=offset,plotOn=True)
+    offset=100E-9+500E-9
+    fd.create_source(waist=200E-9,plotOn=False)
+
+    # fd.n_env=2.391182
+    fd.dn=0.06
+    fd.create_guides(width=500E-9)
+    fd.create_guides(width=500E-9,offset=offset,plotOn=True)
     # fd.calculate_propagation()
     fd.plot_moving_source()
