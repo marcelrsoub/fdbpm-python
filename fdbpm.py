@@ -5,12 +5,14 @@ from matplotlib.widgets import Slider, Button, RadioButtons
 
 class FdBpm:
     def __init__(self):
-        # window properties
-        self.NUM_SAMPLES = np.int(100)
-        self.LENGTH = np.int(1E3)   # set to 1E3 for better precision
-        self.cmap="jet"
+        pass
 
     def create_space(self):
+        # window properties
+        if not hasattr(self,'NUM_SAMPLES') or not hasattr(self,'LENGTH'):
+            self.NUM_SAMPLES = np.int(100)
+            self.LENGTH = np.int(1E3)   # set to 1E3 for better precision
+        self.cmap="jet"
         # Physical Properties
         if not hasattr(self,'L'):
             self.L=240E-6
@@ -33,18 +35,55 @@ class FdBpm:
         if plotOn:
             plt.plot(self.x,self.light)
             plt.show()
+
+    def gauss_light(self, fwhm=20E-6, offset=0):
+        """
+        Create a gaussien beam in amplitude.
+
+        :math:`E = e^{-((x-x_0)/w)^{2P}}`
+
+        The waist is defined as fwhm/sqrt(2*log(2)) and correspond to the 1/e
+        field value and 1/:math:`e^2` intensity value.
+
+        Parameters
+        ----------
+        fwhm : float
+            Full width at half maximum (for intensity not amplitude) (µm).
+        offset : float, optional
+            Light offset from center in µm. 0 by default.
+
+        Returns
+        -------
+        field : array
+            Amplitude values over x in µm.
+
+        Notes
+        -----
+        This methods uses the x and dist_x variables defined in :class:`Bpm`.
+        """
+        if not hasattr(self,'fwhm'):
+            self.fwhm=fwhm
+        spot_size = self.fwhm / np.sqrt(2 * np.log(2))  # such as I=1/e^2 in intensity
+        if spot_size != 0:
+            field = np.exp(-(self.x / spot_size)**2)
+            field = np.roll(field, int(round(offset / self.dx)))
+        else:
+            field = 0 * self.x  # Avoid division by zero error
+        self.light_offset=offset
+        self.light=field
+        return field
         
 
     def gauss(self,x,w0):
         return np.array(np.exp(-(x/w0)**2))
 
-    def create_guides(self,width=8E-6,offset=0,plotOn=False):
+    def create_guides(self,width=25E-6,offset=0,plotOn=False):
         if not hasattr(self, 'n_env'):
-            self.n_env=1.0405
+            self.n_env=1.004
         if not hasattr(self,'guides'):
             self.guides = np.ones((self.NUM_SAMPLES,))*self.n_env
         if not hasattr(self,'dn'):
-            self.dn=0.03
+            self.dn=0.058
         
         
         mask=np.logical_and(self.x>-width/2+offset ,self.x<width/2+offset)
@@ -63,7 +102,7 @@ class FdBpm:
     def make_tri_matrix(self):
 
         if not hasattr(self,'guides'):
-            self.n_env=1.0405
+            self.n_env=1.004
             self.guides = np.ones((self.NUM_SAMPLES,))*self.n_env
             self.avg_guide = self.guides
 
@@ -71,6 +110,7 @@ class FdBpm:
         # k = k0*self.guides
         k = k0/self.guides
         k_bar = k*self.avg_guide
+        # k_bar = k/self.avg_guide
 
         self.h = self.dy
         self.ro = self.dy/(self.dx**2)
@@ -115,7 +155,8 @@ class FdBpm:
 
             # self.modo = np.linalg.lstsq(tridiag_matrix,d)[0]
             light = np.linalg.solve(tridiag_matrix,d) #fastest option
-            propag[n,:] = np.abs(light)
+            # propag[n,:] = np.abs(light)
+            propag[n,:] = (light*light.conjugate()).real
             # propag[n,:] = np.real(light) # TEM Field
             # propag[n,:] = np.angle(light) # interesting
 
@@ -142,22 +183,27 @@ class FdBpm:
 
         fig, ax = plt.subplots()
         plt.subplots_adjust(left=0.25, bottom=0.25)
-        propag_img=self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:]
-        img=ax.imshow(propag_img,cmap=self.cmap,interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E6,0],aspect='auto')
+        if np.int(np.floor(self.LENGTH/self.NUM_SAMPLES))>0:
+            propag_img=self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:]
+        else:
+            propag_img=self.calculate_propagation(plotOn=False)
+        img=ax.imshow(propag_img,cmap=self.cmap,interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E3,0],aspect='auto')
         ax.set_xlabel(r"x ($\mu$m)")
-        ax.set_ylabel(r"Length ($\mu$m)")
+        ax.set_ylabel(r"Length (mm)")
         ax.margins(x=0)
 
         axcolor = 'lightgoldenrodyellow'
         ax_position = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
+        plt.plot(self.x,self.guides,'orange')
 
-        slider_position = Slider(ax_position, 'Light Offset', -self.L/2, +self.L/2, valinit=self.light_offset, valstep=self.dx,valfmt="%2.0e")
+        slider_position = Slider(ax_position, 'Light Offset', -self.L/2, +self.L/2, valinit=self.light_offset, valstep=self.dx*1E-2,valfmt="%2.0e")
 
 
         def update(val):
             pos = np.float(slider_position.val)
-            self.create_source(offset=pos,plotOn=False)
-            img.set_data(self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:])
+            # self.create_source(offset=pos,plotOn=False)
+            self.gauss_light(offset=pos)
+            img.set_data(self.calculate_propagation(plotOn=False))
             fig.canvas.draw_idle()
 
 
