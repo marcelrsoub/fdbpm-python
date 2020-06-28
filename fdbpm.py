@@ -3,9 +3,14 @@ import time as t
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RadioButtons
 
-class FdBpm:
+import sys
+sys.path.insert(0, r"E:\Google Drive\Estudos\Personal studies\Python\matplotlib_gui")
+
+from easy_gui import EasyGUI
+
+class FdBpm(EasyGUI):
     def __init__(self):
-        pass
+        super().__init__()
 
     def create_space(self):
         # window properties
@@ -211,29 +216,66 @@ class FdBpm:
 
         plt.show()
 
+    def update_interactivity(self):
+        self.ui.doubleSpinBox_lambda.setValue(self.l_ambda*1E6)
+        self.ui.pushButton.clicked.connect(self.update_graph)
+        self.ui.SliderPos.setMinimum(-self.L/2*1E6)
+        self.ui.SliderPos.setMaximum(+self.L/2*1E6)
+        # self.ui.SliderPos.setSingleStep(0.01)
+        # self.ui.SliderPos.setMinimum(-1.)
+        # self.ui.SliderPos.setMaximum(+1.)
+        self.ui.SliderPos.setValue(0.)
         
+
+        self.ui.SliderPos.setTickInterval(self.dx)
+        def changed_value():
+            pos=self.ui.SliderPos.value()
+            self.gauss_light(offset=pos*1E-6)
+            self.update_graph(slider=True)
+            self.ui.label_slider.setText(str(pos))
+        self.ui.SliderPos.valueChanged.connect(changed_value)
+
+
+
+    def update_graph(self,slider=False):
+
+        ax = self.ui.MplWidget.canvas.axes
+        canvas = self.ui.MplWidget.canvas
+        
+        if np.int(np.floor(self.LENGTH/self.NUM_SAMPLES))>0:
+            propag_img=self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:]
+        else:
+            propag_img=self.calculate_propagation(plotOn=False)
+        
+        if slider==False:
+            self.img=ax.imshow(propag_img,cmap=self.cmap,interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E3,0],aspect='auto')
+            ax.set_xlabel(r"x ($\mu$m)")
+            ax.set_ylabel(r"Length (mm)")
+        else:
+
+            self.img.set_data(propag_img)
+            canvas.draw()
 
     
 
 if __name__ == "__main__":
     # %matplotlib qt
     fd=FdBpm()
-    fd.NUM_SAMPLES=100
-    fd.LENGTH=1E3
-    longueur=40E-6
-    fd.dy=longueur/fd.LENGTH
-    # fd.dy=1E-6
-    
-    fd.l_ambda=1.55E-6
-    fd.L=3E-6
-    fd.create_space()
-    plotOn=True
-    offset=100E-9+500E-9
-    fd.create_source(waist=200E-9,plotOn=False)
+    fd.window_title="Beampy beta feature - FD-BPM"
+    fd.ui_filepath=r"interface.ui"
+    fd.NUM_SAMPLES=101
+    fd.LENGTH=1E2
+    fd.dy=1E-4
+    fd.l_ambda=1.5E-6
+    fd.L=1000E-6
 
-    # fd.n_env=2.391182
-    fd.dn=0.06
-    fd.create_guides(width=500E-9)
-    fd.create_guides(width=500E-9,offset=offset,plotOn=True)
+    fd.create_space()
+
+    # fd.create_source(plotOn=False)
+    fd.gauss_light(fwhm=20E-6)
+    # fd.dn=0.001
+    # fd.n_env=1
+    fd.create_guides(width=0)
     # fd.calculate_propagation()
-    fd.plot_moving_source()
+    # fd.plot_moving_source()
+    fd.show_gui()
