@@ -1,16 +1,19 @@
 import numpy as np
 import time as t
+
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RadioButtons
-
-import sys
-sys.path.insert(0, r"E:\Google Drive\Estudos\Personal studies\Python\matplotlib_gui")
+from functools import partial
+import copy
 
 from easy_gui import EasyGUI
 
 class FdBpm(EasyGUI):
     def __init__(self):
         super().__init__()
+        self.slider_realtime=True
+        self.window_title="Beampy beta feature - FD-BPM"
+        self.ui_filepath=r"interface.ui"
 
     def create_space(self):
         # window properties
@@ -136,6 +139,8 @@ class FdBpm(EasyGUI):
 
         tridiag_matrix[index,index]=b[index]
 
+        #TODO: scipy class sparse matrices
+
         self.tridiag_matrix=tridiag_matrix
 
     def calculate_propagation(self, plotOn=True, timing=True):
@@ -162,7 +167,7 @@ class FdBpm(EasyGUI):
             light = np.linalg.solve(tridiag_matrix,d) #fastest option
             # propag[n,:] = np.abs(light)
             propag[n,:] = (light*light.conjugate()).real
-            # propag[n,:] = np.real(light) # TEM Field
+            # propag[n,:] = np.real(light) # Oscillations
             # propag[n,:] = np.angle(light) # interesting
 
         if timing:
@@ -216,24 +221,134 @@ class FdBpm(EasyGUI):
 
         plt.show()
 
-    def update_interactivity(self):
-        self.ui.doubleSpinBox_lambda.setValue(self.l_ambda*1E6)
-        self.ui.pushButton.clicked.connect(self.update_graph)
-        self.ui.SliderPos.setMinimum(-self.L/2*1E6)
-        self.ui.SliderPos.setMaximum(+self.L/2*1E6)
-        # self.ui.SliderPos.setSingleStep(0.01)
-        # self.ui.SliderPos.setMinimum(-1.)
-        # self.ui.SliderPos.setMaximum(+1.)
-        self.ui.SliderPos.setValue(0.)
+    def reset_variables(self):
+        # pass
+        delattr(self,'NUM_SAMPLES')
+        delattr(self,'LENGTH')
+        delattr(self,'dy')
+        delattr(self,'dx')
+        delattr(self,'l_ambda')
+        delattr(self,'L')
+        delattr(self,'fwhm')
+        delattr(self,'dn')
+        delattr(self,'light')
+        delattr(self,'light_offset')
+        delattr(self,'n_env')
+        delattr(self,'x')
+        delattr(self,'guides')
+        delattr(self,'avg_guide')
+        delattr(self,'h')
+        delattr(self,'ro')
+        delattr(self,'A')
+        delattr(self,'B')
+        delattr(self,'tridiag_matrix')
         
 
-        self.ui.SliderPos.setTickInterval(self.dx)
+    def update_interactivity(self):
+        self.ui.doubleSpinBox_lambda.setValue(self.l_ambda*1E6)
+        self.ui.spinBox_propLength.setValue(self.LENGTH*self.dy*1E6)
+        self.ui.spinBox_windowSize.setValue(self.L*1E6)
+        self.ui.spinBox_numSamples.setValue(self.NUM_SAMPLES)
+        
+        self.ui.SliderPos.setMinimum(-self.L/2*1E6)
+        self.ui.SliderPos.setMaximum(+self.L/2*1E6)
+        self.ui.SliderPos.setValue(self.light_offset*1E6)
+        self.ui.label_slider.setText(str(np.format_float_positional(self.light_offset*1E6,3))+" um")
+
+        self.ui.actionFree_Space_Propagation.triggered.connect(partial(self.examples,'free_space',chart_update=True))
+        self.ui.actionOne_Waveguide.triggered.connect(partial(self.examples,'one_guide',chart_update=True))
+        self.ui.actionThree_Waveguides.triggered.connect(partial(self.examples,'3_guides',chart_update=True))
+        
+
+        # self.ui.SliderPos.setTickInterval(self.dx)
+        def update_label():
+            pos=self.ui.SliderPos.value()
+            self.ui.label_slider.setText(str(pos)+" um")
+
+        def update_input_values():
+            dy=copy.deepcopy(self.dy)
+            fwhm=copy.deepcopy(self.fwhm)
+            self.reset_variables()
+            self.dy=dy
+            self.fwhm=fwhm
+            self.l_ambda=1E-6*np.float(self.ui.doubleSpinBox_lambda.value())
+            self.LENGTH=1/self.dy*np.float(self.ui.spinBox_propLength.value()*1E-6)
+            self.L=1E-6*np.float(self.ui.spinBox_windowSize.value())
+            self.NUM_SAMPLES=np.int(self.ui.spinBox_numSamples.value())
+            self.create_space()
+            self.gauss_light()
+            self.create_guides()
+            self.ui.SliderPos.setValue(self.light_offset*1E6)
+            self.ui.SliderPos.setMinimum(-self.L/2*1E6)
+            self.ui.SliderPos.setMaximum(+self.L/2*1E6)
+            self.update_graph()
+            #FIXME: update doesn't refresh guides
+
         def changed_value():
             pos=self.ui.SliderPos.value()
             self.gauss_light(offset=pos*1E-6)
             self.update_graph(slider=True)
-            self.ui.label_slider.setText(str(pos))
-        self.ui.SliderPos.valueChanged.connect(changed_value)
+            self.ui.label_slider.setText(str(pos)+" um")
+
+        self.ui.pushButton.clicked.connect(update_input_values)
+            
+        if self.slider_realtime==True:
+            self.ui.SliderPos.valueChanged.connect(changed_value)
+            
+        else:
+            self.ui.SliderPos.sliderReleased.connect(changed_value)
+            self.ui.SliderPos.valueChanged.connect(update_label)
+
+    def examples(self,name,chart_update=False):
+        if chart_update:
+            self.reset_variables()
+        if name=='free_space':
+            
+            self.NUM_SAMPLES=101
+            self.LENGTH=1E2
+            self.dy=1E-4
+            self.l_ambda=1.5E-6
+            self.L=1000E-6
+
+            self.create_space()
+            self.gauss_light(fwhm=20E-6)
+            self.create_guides(width=0)
+
+        elif name=='one_guide':
+            self.NUM_SAMPLES=101
+            self.LENGTH=1E2
+            self.dy=1E-4
+            self.l_ambda=1.5E-6
+            self.L=500E-6
+
+            self.create_space()
+            self.gauss_light()
+            self.dn=0.058
+            self.n_env=1.004
+            self.create_guides()
+        elif name=='3_guides':
+            self.NUM_SAMPLES=101
+            self.LENGTH=500
+            self.dy=1E-5
+            self.l_ambda=1.55E-6
+            self.L=60E-6
+            self.create_space()
+            plotOn=True
+            offset=14E-6
+            self.gauss_light(fwhm=12E-6,offset=-offset+1E-7)
+            self.create_guides(width=10E-6,offset=-offset)
+            self.create_guides(width=10E-6)
+            self.create_guides(width=10E-6,offset=offset,plotOn=False)
+
+        if chart_update:
+            self.ui.doubleSpinBox_lambda.setValue(self.l_ambda*1E6)
+            self.ui.spinBox_propLength.setValue(self.LENGTH*self.dy*1E6)
+            self.ui.spinBox_windowSize.setValue(self.L*1E6)
+            self.ui.spinBox_numSamples.setValue(self.NUM_SAMPLES)
+            self.ui.SliderPos.setMinimum(-self.L/2*1E6)
+            self.ui.SliderPos.setMaximum(+self.L/2*1E6)
+            self.ui.SliderPos.setValue(self.light_offset*1E6)
+            self.update_graph(slider=False)
 
 
 
@@ -248,34 +363,21 @@ class FdBpm(EasyGUI):
             propag_img=self.calculate_propagation(plotOn=False)
         
         if slider==False:
+            ax.clear()
             self.img=ax.imshow(propag_img,cmap=self.cmap,interpolation='bilinear',extent=[-self.L/2*1E6,+self.L/2*1E6,self.LENGTH*self.dy*1E3,0],aspect='auto')
             ax.set_xlabel(r"x ($\mu$m)")
             ax.set_ylabel(r"Length (mm)")
         else:
-
+            # ax.clear()
             self.img.set_data(propag_img)
-            canvas.draw()
+        plt.tight_layout(pad=0.)
+        canvas.draw()
 
     
 
 if __name__ == "__main__":
     # %matplotlib qt
     fd=FdBpm()
-    fd.window_title="Beampy beta feature - FD-BPM"
-    fd.ui_filepath=r"interface.ui"
-    fd.NUM_SAMPLES=101
-    fd.LENGTH=1E2
-    fd.dy=1E-4
-    fd.l_ambda=1.5E-6
-    fd.L=1000E-6
-
-    fd.create_space()
-
-    # fd.create_source(plotOn=False)
-    fd.gauss_light(fwhm=20E-6)
-    # fd.dn=0.001
-    # fd.n_env=1
-    fd.create_guides(width=0)
-    # fd.calculate_propagation()
-    # fd.plot_moving_source()
+    
+    fd.examples('one_guide')
     fd.show_gui()

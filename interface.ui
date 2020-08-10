@@ -7,11 +7,21 @@
     <x>0</x>
     <y>0</y>
     <width>902</width>
-    <height>767</height>
+    <height>835</height>
    </rect>
   </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::ActionsContextMenu</enum>
+  </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string notr="true">FDBPM</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="resource.qrc">
+    <normaloff>:/icon/beampy-logo.png</normaloff>:/icon/beampy-logo.png</iconset>
+  </property>
+  <property name="autoFillBackground">
+   <bool>false</bool>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_4">
@@ -44,6 +54,12 @@
         </item>
         <item>
          <widget class="QLabel" name="label_slider">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>40</height>
+           </size>
+          </property>
           <property name="text">
            <string>0</string>
           </property>
@@ -65,17 +81,53 @@
        </layout>
       </item>
       <item>
-       <widget class="QSlider" name="SliderPos">
-        <property name="cursor">
-         <cursorShape>SizeHorCursor</cursorShape>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="tickPosition">
-         <enum>QSlider::TicksBelow</enum>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>67</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QSlider" name="SliderPos">
+          <property name="cursor">
+           <cursorShape>SplitHCursor</cursorShape>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBelow</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
       <item>
        <layout class="QGridLayout" name="gridLayout_2">
@@ -100,24 +152,82 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QSpinBox" name="spinBox_numGuides"/>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>Number of Guides</string>
+         <widget class="QSpinBox" name="spinBox_propLength">
+          <property name="suffix">
+           <string> um</string>
+          </property>
+          <property name="maximum">
+           <number>10000000</number>
           </property>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_lambda"/>
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_lambda">
+          <property name="suffix">
+           <string> um</string>
+          </property>
+          <property name="maximum">
+           <double>1000000.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QLabel" name="label_4">
+          <property name="text">
+           <string>Window x size</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>Propagation Length</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QSpinBox" name="spinBox_windowSize">
+          <property name="suffix">
+           <string> um</string>
+          </property>
+          <property name="maximum">
+           <number>1000000</number>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3">
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>Number of Samples</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="4">
+         <widget class="QSpinBox" name="spinBox_numSamples">
+          <property name="maximum">
+           <number>1000</number>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
       <item>
        <widget class="QPushButton" name="pushButton">
         <property name="text">
-         <string>PushButton</string>
+         <string>Recalculate with new parameters</string>
         </property>
        </widget>
       </item>
@@ -134,8 +244,35 @@
      <height>26</height>
     </rect>
    </property>
+   <property name="nativeMenuBar">
+    <bool>false</bool>
+   </property>
+   <widget class="QMenu" name="menuLoad_Examples">
+    <property name="title">
+     <string>Load Examples</string>
+    </property>
+    <addaction name="actionFree_Space_Propagation"/>
+    <addaction name="actionOne_Waveguide"/>
+    <addaction name="actionThree_Waveguides"/>
+   </widget>
+   <addaction name="menuLoad_Examples"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionFree_Space_Propagation">
+   <property name="text">
+    <string>Free Space Propagation</string>
+   </property>
+  </action>
+  <action name="actionOne_Waveguide">
+   <property name="text">
+    <string>One Waveguide</string>
+   </property>
+  </action>
+  <action name="actionThree_Waveguides">
+   <property name="text">
+    <string>Three Waveguides</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -145,6 +282,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resource.qrc"/>
+ </resources>
  <connections/>
 </ui>
