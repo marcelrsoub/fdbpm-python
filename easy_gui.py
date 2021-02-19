@@ -4,10 +4,10 @@
 # @Last Modified by:   Marcel Reis-Soubkovsky
 # @Last Modified time: 2020-07-08 18:04:03
 
-from PySide2.QtWidgets import*
+# from PySide2.QtWidgets import *
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtCore import Qt, QFile, QIODevice
-from PySide2.QtWidgets import QApplication, QWidget, QFileDialog
+from PySide2.QtWidgets import QApplication, QWidget, QFileDialog, QVBoxLayout, QGridLayout, QMainWindow
 from PySide2.QtGui import QIcon
 import sys
 
