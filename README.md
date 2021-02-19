@@ -13,4 +13,4 @@ Two `.pdf` files present in the repo with slides and a more extensive report exp
 
 ## Example:
 
-![Example with one waveguide](./one_guide.png "Example with one waveguide")
+![Example with one waveguide](./demo.gif "Example with one waveguide")

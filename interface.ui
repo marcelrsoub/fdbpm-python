@@ -25,16 +25,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_4">
-    <item row="0" column="0">
-     <widget class="MplWidget" name="MplWidget" native="true">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>600</height>
-       </size>
-      </property>
-     </widget>
-    </item>
     <item row="1" column="0">
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
@@ -233,6 +223,16 @@
       </item>
      </layout>
     </item>
+    <item row="0" column="0">
+     <widget class="MplWidget" name="MplWidget" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>600</height>
+       </size>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -241,7 +241,7 @@
      <x>0</x>
      <y>0</y>
      <width>902</width>
-     <height>26</height>
+     <height>22</height>
     </rect>
    </property>
    <property name="nativeMenuBar">
@@ -278,7 +278,7 @@
   <customwidget>
    <class>MplWidget</class>
    <extends>QWidget</extends>
-   <header>mplwidget.h</header>
+   <header location="global">mplwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

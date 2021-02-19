@@ -1,6 +1,12 @@
 import numpy as np
 import time as t
 
+from PySide2.QtWidgets import*
+
+from cycler import cycler
+
+import numpy as np
+
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RadioButtons
 from functools import partial
@@ -12,8 +18,9 @@ class FdBpm(EasyGUI):
     def __init__(self):
         super().__init__()
         self.slider_realtime=True
-        self.window_title="Beampy beta feature - FD-BPM"
+        self.window_title="FD-BPM"
         self.ui_filepath=r"interface.ui"
+        self.icon_path=r"fdbpm-logo.png"
 
     def create_space(self):
         # window properties
@@ -46,7 +53,7 @@ class FdBpm(EasyGUI):
 
     def gauss_light(self, fwhm=20E-6, offset=0):
         """
-        Create a gaussien beam in amplitude.
+        Create a gaussian beam in amplitude.
 
         :math:`E = e^{-((x-x_0)/w)^{2P}}`
 
@@ -351,11 +358,10 @@ class FdBpm(EasyGUI):
             self.update_graph(slider=False)
 
 
-
     def update_graph(self,slider=False):
-
-        ax = self.ui.MplWidget.canvas.axes
-        canvas = self.ui.MplWidget.canvas
+        
+        canvas = self.ui.MplWidget.mpl_canvas
+        ax = self.ui.MplWidget.mpl_canvas.axes  # no canvas in the object
         
         if np.int(np.floor(self.LENGTH/self.NUM_SAMPLES))>0:
             propag_img=self.calculate_propagation(plotOn=False)[::np.int(np.floor(self.LENGTH/self.NUM_SAMPLES)),:]
