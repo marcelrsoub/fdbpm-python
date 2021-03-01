@@ -1,28 +1,24 @@
-import numpy as np
 import time as t
-
-from PySide2.QtWidgets import *
-
-from cycler import cycler
 
 import numpy as np
 
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button, RadioButtons
+from matplotlib.widgets import Slider
+
 from functools import partial
 import copy
 
-from easy_gui import EasyGUI
+from easy_gui import EasyPlotGUI
+import interface_ui
 
 from numba import jit
 
 
-class FdBpm(EasyGUI):
+class FdBpm(EasyPlotGUI):
     def __init__(self):
-        super().__init__()
+        super().__init__(interface_ui)
         self.slider_realtime = True
         self.window_title = "FD-BPM"
-        self.ui_filepath = r"interface.ui"
         self.icon_path = r"fdbpm-logo.png"
 
     def create_space(self):
@@ -155,7 +151,7 @@ class FdBpm(EasyGUI):
 
     @staticmethod
     @jit(forceobj=True)
-    def core_propag_jit(A,B, ro, light, tridiag_matrix, h,LENGTH,NUM_SAMPLES):
+    def core_propag_jit(A, B, ro, light, tridiag_matrix, h, LENGTH, NUM_SAMPLES):
 
         propag = np.zeros((int(LENGTH), int(NUM_SAMPLES)))
         d = np.zeros((NUM_SAMPLES), dtype='complex_')
@@ -172,7 +168,8 @@ class FdBpm(EasyGUI):
             # light = np.linalg.lstsq(tridiag_matrix,d)[0]
             light = np.linalg.solve(tridiag_matrix, d)  # fastest option
             # propag[n,:] = np.abs(light)
-            propag[n, :] = (light*light.conjugate()).real
+            # propag[n, :] = (light*light.conjugate()).real
+            propag[n, :] = light.real**2 + light.imag**2
             # propag[n,:] = np.real(light) # Oscillations
             # propag[n,:] = np.angle(light) # interesting
         return propag
@@ -185,7 +182,8 @@ class FdBpm(EasyGUI):
         if(timing == True):
             start = t.time()
 
-        propag = self.core_propag_jit(self.A,self.B, self.ro, self.light, self.tridiag_matrix, self.h,self.LENGTH,self.NUM_SAMPLES)
+        propag = self.core_propag_jit(
+            self.A, self.B, self.ro, self.light, self.tridiag_matrix, self.h, self.LENGTH, self.NUM_SAMPLES)
 
         if(timing == True):
             end = t.time()
@@ -376,8 +374,8 @@ class FdBpm(EasyGUI):
 
     def update_graph(self, slider=False):
 
-        canvas = self.ui.MplWidget.mpl_canvas
-        ax = self.ui.MplWidget.mpl_canvas.axes  # no canvas in the object
+        
+        ax = self.ax  # no canvas in the object
 
         if int(np.floor(self.LENGTH/self.NUM_SAMPLES)) > 0:
             propag_img = self.calculate_propagation(
@@ -395,7 +393,7 @@ class FdBpm(EasyGUI):
             # ax.clear()
             self.img.set_data(propag_img)
         plt.tight_layout(pad=0.)
-        canvas.draw()
+        self.draw()
 
 
 if __name__ == "__main__":

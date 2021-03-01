@@ -17,7 +17,7 @@
    <string notr="true">FDBPM</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resource.qrc">
+   <iconset>
     <normaloff>:/icon/beampy-logo.png</normaloff>:/icon/beampy-logo.png</iconset>
   </property>
   <property name="autoFillBackground">
@@ -278,12 +278,10 @@
   <customwidget>
    <class>MplWidget</class>
    <extends>QWidget</extends>
-   <header location="global">mplwidget.h</header>
+   <header location="global">easy_gui</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="resource.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
